@@ -1,7 +1,16 @@
 # -*- coding: utf-8 -*-
 import oss2
 from oss2 import utils, models
-import io, os
+import io
+import os, logging
+
+# Close the info log printed by the oss SDK
+logging.getLogger("oss2.api").setLevel(logging.ERROR)
+logging.getLogger("oss2.auth").setLevel(logging.ERROR)
+
+LOGGER = logging.getLogger("tar_decompress")
+# open debug log
+# LOGGER.setLevel(logging.DEBUG)
 
 # support upload to oss as a file-like object
 def make_crc_adapter(data, init_crc=0):
@@ -12,7 +21,6 @@ def make_crc_adapter(data, init_crc=0):
 
 utils.make_crc_adapter = make_crc_adapter
 
-
 class OssStreamFileLikeObject(io.RawIOBase):
     def __init__(self, bucket, key):
         super(OssStreamFileLikeObject, self).__init__()
@@ -20,6 +28,8 @@ class OssStreamFileLikeObject(io.RawIOBase):
         self._key = key
         self._meta_data = self._bucket.get_object_meta(self._key)
         self._pos = 0
+        self._reader = self._bucket.get_object(
+            self._key, byte_range=(0, self.filesize-1))
 
     @property
     def bucket(self):
@@ -42,15 +52,41 @@ class OssStreamFileLikeObject(io.RawIOBase):
         SEEK_CUR or 1 – current stream position; offset may be negative
         SEEK_END or 2 – end of the stream; offset is usually negative
         '''
+        assert whence in (os.SEEK_SET, os.SEEK_CUR, os.SEEK_END)
+        
+        if pos == self._pos and whence in (os.SEEK_SET, os.SEEK_CUR):
+            return
+        
+        old_pos = self._pos
+        SIZE_TH = 4*1024*1024
+        change_reader = False
         if whence == os.SEEK_SET:
+            dis = pos - self._pos
+            if dis > 0 and dis < SIZE_TH:
+                self._reader.read(pos - self._pos)
+            else:
+                change_reader = True
             self._pos = pos
+
         elif whence == os.SEEK_CUR:
-            self._pos += pos
+             if pos > 0 and pos < SIZE_TH:
+                 self._reader.read(pos)
+             else:
+                 change_reader = True
+             self._pos += pos
+
         elif whence == os.SEEK_END:
-            self._pos = self.filesize - 1 - pos
+            self._pos = self.filesize - 1 + pos
+            change_reader = True
         else:
-            raise RuntimeError(
-                "OssStreamFileLikeObject seek error, whence = {}".format(whence))
+            pass
+
+        if change_reader:
+            LOGGER.debug("helper seek change reader: pos = {}, whence = {}, self._pos = {}, old_pos = {} ".format(
+                pos, whence, self._pos, old_pos))
+            self._reader = None
+            self._reader = self._bucket.get_object(
+		    self._key, byte_range=(self._pos, self.filesize-1))
 
     def seekable(self):
         return True
@@ -58,17 +94,9 @@ class OssStreamFileLikeObject(io.RawIOBase):
     def read(self, size=None):
         if self._pos >= self.filesize:
             return b""
-        begin = self._pos
-        begin = begin if begin >= 0 else 0
-        size = -1 if size == None else size
-        if size <= 0:
-            end = self.filesize - 1
-        else:
-            end = self._pos + size - 1
-            end = end if end > 0 else self.filesize - 1
-            end = end if end < self.filesize else self.filesize - 1
-        begin = begin if begin < end else end
-        reader = self._bucket.get_object(self._key, byte_range=(begin, end))
-        contents = reader.read()
+        if size < 0:
+            size = None
+
+        contents = self._reader.read(size)
         self._pos = self._pos + len(contents)
         return contents

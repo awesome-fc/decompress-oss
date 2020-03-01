@@ -4,6 +4,8 @@
 
 如图所示，通过配置函数计算 ( FC ) 的对象存储 ( OSS ) 触发器， 当用户上传符合触发触发规则的压缩文件到 OSS 上的 bucket 时候， 比如上传后缀为 .zip 、 .tar.gz(.tgz) 、 .tar.bz2 、 .tar.xz 的压缩文件到指定 bucket 的指定目录(即前缀)的时候， 会自动触发解压函数的自动执行。
 
+> 注: 压缩文件最好是标准的 zip 和 tar 命令行压错，本 repo 使用的是 python3.6 相关解压库实现
+
 **注意**
 函数计算执行环境有两个限制:
 
@@ -33,11 +35,9 @@
 git clone https://github.com/awesome-fc/decompress-oss.git
 ```
 
-### 2. 安装最新版本的 fun
+### 2. 安装最新版本的 funcraft
 
--	安装版本为8.x 最新版或者10.x 、12.x [nodejs](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions-enterprise-linux-fedora-and-snap-packages)
-
--	安装 [funcraft](https://github.com/alibaba/funcraft/blob/master/docs/usage/installation-zh.md)
+[funcraft 安装配置指引](https://github.com/alibaba/funcraft/blob/master/docs/usage/installation-zh.md)
 
 在使用 funcraft 前，我们需要先进行配置，通过键入 fun config，然后按照提示，依次配置 Account ID、Access Key Id、Secret Access Key、 Default Region Name 即可
 

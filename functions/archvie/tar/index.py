@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
-
 import tarfile
 import oss2
 from oss2 import utils, models
 import logging
-import os, json
-import helper
+import os, json, time
+from helper import LOGGER, OssStreamFileLikeObject
 
-# Close the info log printed by the oss SDK
-logging.getLogger("oss2.api").setLevel(logging.ERROR)
-logging.getLogger("oss2.auth").setLevel(logging.ERROR)
-LOGGER = logging.getLogger()
+# a decorator for print the excute time of a function
+def print_excute_time(func):
+    def wrapper(*args, **kwargs):
+        local_time = time.time()
+        ret = func(*args, **kwargs)
+        LOGGER.info('current Function [%s] excute time is %.2f' %
+              (func.__name__, time.time() - local_time))
+        return ret
+    return wrapper
 
-
+@print_excute_time
 def handler(event, context):
     evt_lst = json.loads(event)
     creds = context.credentials
@@ -68,13 +72,11 @@ def handler(event, context):
         
     LOGGER.info("start to decompress tar file = {}".format(object_name))
     
-    oss_file_obj = helper.OssStreamFileLikeObject(bucket, object_name)
+    oss_file_obj = OssStreamFileLikeObject(bucket, object_name)
     with tarfile.open(fileobj=oss_file_obj, mode=open_mode) as tf:
         for entry in tf.getmembers():
             if not entry.isfile():
                 continue
+            LOGGER.debug("extract {} ...".format(entry.name))
             file_obj = tf.extractfile(entry)
             bucket.put_object(newKey + entry.name, file_obj)
-
-# if __name__ == "__main__":
-#     handler("", "")

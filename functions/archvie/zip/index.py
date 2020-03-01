@@ -22,7 +22,7 @@ If necessary to rewrite this function, and ensure that the debugging pass
 
 import helper
 import oss2, json
-import os
+import os, time
 import logging
 import chardet
 
@@ -39,6 +39,17 @@ logging.getLogger("oss2.auth").setLevel(logging.ERROR)
 
 LOGGER = logging.getLogger()
 
+# a decorator for print the excute time of a function
+def print_excute_time(func):
+    def wrapper(*args, **kwargs):
+        local_time = time.time()
+        ret = func(*args, **kwargs)
+        LOGGER.info('current Function [%s] excute time is %.2f' %
+              (func.__name__, time.time() - local_time))
+        return ret
+    return wrapper
+
+@print_excute_time
 def handler(event, context):
   """
   The object from OSS will be decompressed automatically .
