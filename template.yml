@@ -23,7 +23,7 @@ Resources:
         Runtime: python3
         CodeUri: ./functions/archvie/tar/
         Timeout: 600
-        MemorySize: 512
+        MemorySize: 1536
         EnvironmentVariables:
           PROCESSED_DIR: dst/
       Events:
@@ -37,7 +37,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: ".tgz"
             BucketName: your-bucket
         untargz-oss-trigger:
@@ -50,7 +50,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: ".tar.gz"
             BucketName: your-bucket
         untarbz2-oss-trigger:
@@ -63,7 +63,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: ".tar.bz2"
             BucketName: your-bucket
         untarxz-oss-trigger:
@@ -76,7 +76,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: ".tar.xz"
             BucketName: your-bucket
         untar-oss-trigger:
@@ -89,7 +89,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: ".tar"
             BucketName: your-bucket
   zip-decompress:
@@ -112,7 +112,7 @@ Resources:
         Handler: index.handler
         Runtime: python3
         Timeout: 600
-        MemorySize: 512
+        MemorySize: 1536
         EnvironmentVariables:
           PROCESSED_DIR: dst/
         CodeUri: ./functions/archvie/zip/
@@ -127,7 +127,7 @@ Resources:
               - 'oss:ObjectCreated:PutSymlink'
             Filter:
               Key:
-                Prefix: src
+                Prefix: src/
                 Suffix: zip
             BucketName: your-bucket
   decompress-log-pro:
