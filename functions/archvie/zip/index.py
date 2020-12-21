@@ -26,6 +26,10 @@ import os, time
 import logging
 import chardet
 
+from aliyunsdkcore.client import AcsClient
+from aliyunsdkcdn.request.v20180510.PushObjectCacheRequest import PushObjectCacheRequest
+from aliyunsdkcore.auth.credentials import StsTokenCredential
+
 """
 When a source/ prefix object is placed in an OSS, it is hoped that the object will be decompressed and then stored in the OSS as processed/ prefixed.
 For example, source/a.zip will be processed as processed/a/... 
@@ -73,6 +77,10 @@ def handler(event, context):
   bucket = oss2.Bucket(auth, endpoint, bucket_name)
   object_name = evt['oss']['object']['key']
 
+  suffix = ".zip.UNZIP"
+  assert object_name.endswith(suffix);
+  object_name = object_name[0:-len(suffix)] + ".zip"
+
   if "ObjectCreated:PutSymlink" == evt['eventName']:
     object_name = bucket.get_symlink(object_name).target_key
     if object_name == "":
@@ -94,7 +102,13 @@ def handler(event, context):
   zip_fp = helper.OssStreamFileLikeObject(bucket, object_name)
   
   newKey = newKey.replace(".zip", "/")
-  
+
+  sts_token_credential = StsTokenCredential(creds.access_key_id, creds.access_key_secret, creds.security_token)
+  client = AcsClient(region_id=context.region, credential=sts_token_credential)
+  request = PushObjectCacheRequest()
+  request.set_accept_format('json')
+  cdn_domain = os.environ["CDN_DOMAIN"]
+
   with helper.zipfile_support_oss.ZipFile(zip_fp) as zip_file:
     for name in zip_file.namelist():
       with zip_file.open(name) as file_obj:
@@ -115,3 +129,9 @@ def handler(event, context):
           name = name.decode(encoding="gb2312")
           
         bucket.put_object(newKey +  name, file_obj)
+
+        # push to cdn fresh
+        request.set_ObjectPath(os.path.join(cdn_domain, newKey +  name))
+        response = client.do_action_with_exception(request)
+        LOGGER.info(str(response, encoding='utf-8'))
+
