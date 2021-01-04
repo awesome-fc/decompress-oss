@@ -12,6 +12,7 @@ Resources:
               Action:
                 - oss:GetObject
                 - oss:PutObject
+                - cdn:*
               Resource: 'acs:oss:*:*:your-bucket/*'
       LogConfig:
         Project: 'decompress-log-pro'
@@ -115,6 +116,7 @@ Resources:
         MemorySize: 1536
         EnvironmentVariables:
           PROCESSED_DIR: dst/
+          CDN_DOMAIN: your-cdn-domain
         CodeUri: ./functions/archvie/zip/
       Events:
         unzip-oss-trigger:
@@ -128,7 +130,7 @@ Resources:
             Filter:
               Key:
                 Prefix: src/
-                Suffix: zip
+                Suffix: zip.UNZIP
             BucketName: your-bucket
   decompress-log-pro:
     Type: 'Aliyun::Serverless::Log'
