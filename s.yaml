@@ -1,0 +1,141 @@
+edition: 1.0.0
+name: transform_fun
+access: default
+vars:
+  region: cn-hangzhou
+services:
+  fc-tar-decompress-oss-invoke-fc:
+    component: devsapp/fc
+    props:
+      region: ${vars.region}
+      service:
+        name: tar-decompress
+        description: decompress .tar.gz .tgz  .tar.gz  .tar.xz  .tar
+        role:
+          name: tar-decompressDefaultRole
+          policies:
+            - Version: '1'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - oss:GetObject
+                    - oss:PutObject
+                  Resource: acs:oss:*:*:your-bucket/*
+        internetAccess: true
+        #logConfig: auto
+      function:
+        name: oss-invoke-fc
+        handler: index.handler
+        timeout: 600
+        memorySize: 1536
+        runtime: python3
+        environmentVariables:
+          PROCESSED_DIR: dst/
+        codeUri: ./functions/archvie/tar/
+      triggers:
+        - name: untgz-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tgz
+            bucketName: your-bucket
+        - name: untargz-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tar.gz
+            bucketName: your-bucket
+        - name: untarbz2-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tar.bz2
+            bucketName: your-bucket
+        - name: untarxz-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tar.xz
+            bucketName: your-bucket
+        - name: untar-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tar
+            bucketName: your-bucket
+  fc-zip-decompress-oss-invoke-fc:
+    component: devsapp/fc
+    props:
+      region: ${vars.region}
+      service:
+        name: zip-decompress
+        role:
+          name: zip-decompressDefaultRole
+          policies:
+            - Version: '1'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - oss:GetObject
+                    - oss:PutObject
+                  Resource: acs:oss:*:*:your-bucket/*
+        internetAccess: true
+        #logConfig: auto
+      function:
+        name: oss-invoke-fc
+        handler: index.handler
+        timeout: 600
+        memorySize: 1536
+        runtime: python3
+        environmentVariables:
+          PROCESSED_DIR: dst/
+        codeUri: ./functions/archvie/zip/
+      triggers:
+        - name: unzip-oss-trigger
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: zip
+            bucketName: your-bucket
