@@ -12,22 +12,23 @@ services:
         name: tar-decompress
         description: decompress .tar.gz .tgz  .tar.gz  .tar.xz  .tar
         role:
-          name: tar-decompressDefaultRole
+          name: decompressDefaultRole
           policies:
-            - Version: '1'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - oss:GetObject
-                    - oss:PutObject
-                  Resource: acs:oss:*:*:your-bucket/*
+            - name: ossGetPutPolicy
+              description: custom policy that oss GetObject and PutObject
+              statement: 
+              - Effect: Allow
+                Action:
+                  - oss:GetObject
+                  - oss:PutObject
+                Resource: acs:oss:*:*:your-bucket/*
         internetAccess: true
         #logConfig: auto
       function:
         name: oss-invoke-fc
         handler: index.handler
-        timeout: 600
-        memorySize: 1536
+        timeout: 900
+        memorySize: 2048
         runtime: python3
         environmentVariables:
           PROCESSED_DIR: dst/
@@ -104,23 +105,25 @@ services:
       region: ${vars.region}
       service:
         name: zip-decompress
+        description: Streaming decompression of zip compressed files
         role:
-          name: zip-decompressDefaultRole
+          name: decompressDefaultRole
           policies:
-            - Version: '1'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - oss:GetObject
-                    - oss:PutObject
-                  Resource: acs:oss:*:*:your-bucket/*
+            - name: ossGetPutPolicy
+              description: custom policy that oss GetObject and PutObject
+              statement: 
+              - Effect: Allow
+                Action:
+                  - oss:GetObject
+                  - oss:PutObject
+                Resource: acs:oss:*:*:your-bucket/*
         internetAccess: true
         #logConfig: auto
       function:
         name: oss-invoke-fc
         handler: index.handler
-        timeout: 600
-        memorySize: 1536
+        timeout: 900
+        memorySize: 2048
         runtime: python3
         environmentVariables:
           PROCESSED_DIR: dst/
@@ -137,5 +140,80 @@ services:
             filter:
               Key:
                 Prefix: src/
-                Suffix: zip
+                Suffix: .zip
+            bucketName: your-bucket
+
+  # 使用性能型实例, 内存最大可以调整到 32G, 执行时长可以到 2h
+  # 这个函数解压方法很简洁， 直接将 oss 的待解压文件读到内存， 解压后， 串行上传回 OSS
+  # 因此这个函数要预估好需要的内存， 这个例子给的函数内存是 4G (memorySize 参数)
+  fc-decompress-oss-invoke-fc-EnhancedInstance:
+    component: devsapp/fc
+    props:
+      region: ${vars.region}
+      service:
+        name: enhancedInstance-decompress
+        description: decompress .gz .tar .zip with enhancedInstance
+        role:
+          # EnhancedInstance
+          name: decompressDefaultRole
+          policies:
+            - name: ossGetPutPolicy
+              description: custom policy that oss GetObject and PutObject
+              statement: 
+              - Effect: Allow
+                Action:
+                  - oss:GetObject
+                  - oss:PutObject
+                Resource: acs:oss:*:*:your-bucket/*
+        internetAccess: true
+        #logConfig: auto
+      function:
+        name: oss-invoke-fc
+        handler: index.handler
+        timeout: 7200
+        memorySize: 4096
+        runtime: python3
+        instanceType: c1
+        environmentVariables:
+          PROCESSED_DIR: dst/
+        codeUri: ./functions/archvie/enhancedInstance/
+      triggers:
+        - name: zip-t
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .zip
+            bucketName: your-bucket
+        - name: gz-t
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .gz
+            bucketName: your-bucket
+        - name: tar-t
+          type: oss
+          config:
+            events:
+              - oss:ObjectCreated:PutObject
+              - oss:ObjectCreated:PostObject
+              - oss:ObjectCreated:CompleteMultipartUpload
+              - oss:ObjectCreated:PutSymlink
+            filter:
+              Key:
+                Prefix: src/
+                Suffix: .tar
             bucketName: your-bucket
