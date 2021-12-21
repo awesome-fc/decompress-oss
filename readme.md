@@ -58,3 +58,13 @@ git clone https://github.com/awesome-fc/decompress-oss.git
     - 或者直接执行 `$ s fc-zip-decompress-oss-invoke-fc deploy -y`， 可以流式解压 .zip 文件
 
 强烈建议使用直接解压法， 代码逻辑简洁， 定位问题容易
+
+## 其他
+上面的示例, 解压保存回去的都还是本身触发函数的 OSS， 如果是保存到其他 OSS， 直接将 bucket.put_object(newKey + name, file_obj) 这样上传回 oss 的代码修改下即可， 比如：
+
+```
+auth = oss2.Auth('<yourAccessKeyId>', '<yourAccessKeySecret>')
+dst_bucket_name = "xxx-bucket"
+dst_bucket = oss2.Bucket(auth, endpoint, dst_bucket_name)  
+dst_bucket.put_object(newKey +  name, file_obj)
+```
