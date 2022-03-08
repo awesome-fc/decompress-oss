@@ -25,23 +25,26 @@ utils.make_crc_adapter = make_crc_adapter
 # .gz .tar  .zip
 
 
-def get_name(name):
-  # 解决文件名中文乱码问题
+def get_name(origin_name):  # 解决中文乱码问题
+    name = origin_name
     try:
-        name = name.encode(encoding='cp437')
+        name_bytes = origin_name.encode(encoding="cp437")
     except:
-        name = name.encode(encoding='utf-8')
+        name_bytes = origin_name.encode(encoding="utf-8")
 
     # the string to be detect is long enough, the detection result accuracy is higher
-    detect = chardet.detect((name*100)[0:100])
+    detect = chardet.detect((name_bytes*100)[0:100])
     confidence = detect["confidence"]
     if confidence > 0.8:
         try:
-            name = name.decode(encoding=detect["encoding"])
+            detect_encoding = detect["encoding"]
+            if detect_encoding.lower() in ["gb2312", "gbk"]:
+                detect_encoding = "gb18030"
+            name = name_bytes.decode(detect_encoding)
         except:
-            name = name.decode(encoding='gb2312')
+            name = name_bytes.decode(encoding="gb18030")
     else:
-        name = name.decode(encoding="gb2312")
+        name = name_bytes.decode(encoding="gb18030")
     return name
 
 
