@@ -54,6 +54,29 @@ def print_excute_time(func):
     return wrapper
 
 
+def get_zipfile_name(origin_name):  # 解决中文乱码问题
+    name = origin_name
+    try:
+        name_bytes = origin_name.encode(encoding="cp437")
+    except:
+        name_bytes = origin_name.encode(encoding="utf-8")
+
+    # the string to be detect is long enough, the detection result accuracy is higher
+    detect = chardet.detect((name_bytes*100)[0:100])
+    confidence = detect["confidence"]
+    if confidence > 0.8:
+        try:
+            detect_encoding = detect["encoding"]
+            if detect_encoding.lower() in ["gb2312", "gbk"]:
+                detect_encoding = "gb18030"
+            name = name_bytes.decode(detect_encoding)
+        except:
+            name = name_bytes.decode(encoding="gb18030")
+    else:
+        name = name_bytes.decode(encoding="gb18030")
+    return name
+
+
 @print_excute_time
 def handler(event, context):
     """
@@ -104,20 +127,5 @@ def handler(event, context):
     with helper.zipfile_support_oss.ZipFile(zip_fp) as zip_file:
         for name in zip_file.namelist():
             with zip_file.open(name) as file_obj:
-                try:
-                    name = name.encode(encoding='cp437')
-                except:
-                    name = name.encode(encoding='utf-8')
-
-                # the string to be detect is long enough, the detection result accuracy is higher
-                detect = chardet.detect((name*100)[0:100])
-                confidence = detect["confidence"]
-                if confidence > 0.8:
-                    try:
-                        name = name.decode(encoding=detect["encoding"])
-                    except:
-                        name = name.decode(encoding='gb2312')
-                else:
-                    name = name.decode(encoding="gb2312")
-
+                name = get_zipfile_name(name)
                 bucket.put_object(newKey + name, file_obj)
