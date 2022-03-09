@@ -1,6 +1,6 @@
 ## 简介
 
-<img src="fc-oss-decompress.jpg?raw=true">
+![](https://img.alicdn.com/imgextra/i1/O1CN01PNuj1t1uYUXk2K9Cb_!!6000000006049-2-tps-1876-648.png)
 
 如图所示，通过配置函数计算 ( FC ) 的对象存储 ( OSS ) 触发器， 当用户上传符合触发触发规则的压缩文件到 OSS 上的 bucket 时候， 比如上传后缀为 .zip 、 .tar.gz(.tgz) 、 .tar.bz2 、 .tar.xz 的压缩文件到指定 bucket 的指定目录(即前缀)的时候， 会自动触发解压函数的自动执行。
 
