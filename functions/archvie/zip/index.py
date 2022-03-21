@@ -117,11 +117,15 @@ def handler(event, context):
     lst = object_name.split("/")
     zip_name = lst[-1]
     PROCESSED_DIR = os.environ.get("PROCESSED_DIR", "")
+    RETAIN_FILE_NAME = os.environ.get("RETAIN_FILE_NAME", "")
     if PROCESSED_DIR and PROCESSED_DIR[-1] != "/":
         PROCESSED_DIR += "/"
-    newKey = PROCESSED_DIR + zip_name
-    zip_fp = helper.OssStreamFileLikeObject(bucket, object_name)
+    if RETAIN_FILE_NAME == "false":
+        newKey = PROCESSED_DIR
+    else:
+        newKey = PROCESSED_DIR + zip_name
 
+    zip_fp = helper.OssStreamFileLikeObject(bucket, object_name)
     newKey = newKey.replace(".zip", "/")
 
     with helper.zipfile_support_oss.ZipFile(zip_fp) as zip_file:
